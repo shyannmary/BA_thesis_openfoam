@@ -1,0 +1,130 @@
+In this chapter, theoretical basis for the OpenFOAM simulation is described. 
+\section{Reynolds-Averaged Navier-Stokes (RANS) Equations}
+\label{sec:rans_theory}
+
+The motion of any fluid is governed by the Navier--Stokes equations, which describe the conservation of mass and momentum. For an incompressible fluid with constant density, the continuity equation requires that the velocity field is divergence-free, and the momentum equation balances the rate of change of velocity with pressure gradients, viscous forces, and any external forces \cite{Pope2000TurbulentFlows,VersteegMalalasekera2007CFD}. These equations are exact and apply to all flow regimes, including turbulent flows. However, solving them directly for turbulent flows requires resolving all small-scale fluctuations in velocity and pressure, which demands extremely fine meshes and very small time steps. For most engineering applications this is computationally too expensive \cite{Pope2000TurbulentFlows}.
+
+To make the problem practical, the Reynolds-Averaged Navier--Stokes (RANS) approach applies a time-averaging procedure using Reynolds decomposition \cite{Pope2000TurbulentFlows,Wilcox2006TurbulenceModeling}. Each flow variable is split into a mean (time-averaged) component and a fluctuating component. For the velocity field this is written as
+\begin{equation}
+u_i = \overline{u}_i + u'_i ,
+\end{equation}
+where $\overline{u}_i$ is the mean velocity and $u'_i$ is the turbulent fluctuation. The same decomposition is applied to pressure. Substituting these decomposed variables into the Navier--Stokes equations and applying time-averaging yields the RANS equations \cite{Pope2000TurbulentFlows,VersteegMalalasekera2007CFD}.
+
+For incompressible flow, the averaged continuity equation retains the same form as the instantaneous equation:
+\begin{equation}
+\frac{\partial \overline{u}_i}{\partial x_i} = 0 .
+\end{equation}
+The averaged momentum equation becomes:
+\begin{equation}
+\rho\left(
+\frac{\partial \overline{u}_i}{\partial t}
++
+\overline{u}_j \frac{\partial \overline{u}_i}{\partial x_j}
+\right)
+=
+-\frac{\partial \overline{p}}{\partial x_i}
++
+\mu \frac{\partial^2 \overline{u}_i}{\partial x_j \partial x_j}
+-
+\rho \frac{\partial \left(\overline{u'_i u'_j}\right)}{\partial x_j} .
+\end{equation}
+
+This equation is similar to the laminar Navier--Stokes momentum equation, except for the additional term involving $\overline{u'_i u'_j}$ \cite{Pope2000TurbulentFlows,VersteegMalalasekera2007CFD}. The quantity $-\rho \overline{u'_i u'_j}$ is known as the Reynolds stress tensor. It represents the influence of turbulent fluctuations on the mean flow and appears due to averaging of the nonlinear convective term. The Reynolds stress tensor introduces six additional unknowns (it is symmetric), but the RANS equations provide no extra equations to solve for them. This is known as the turbulence closure problem \cite{Pope2000TurbulentFlows,Wilcox2006TurbulenceModeling}.
+
+To close the system, a turbulence model is required. A common engineering approach is the eddy-viscosity hypothesis, originally proposed by Boussinesq, which assumes that the Reynolds stresses can be related to the mean rate of strain through a turbulent (eddy) viscosity $\mu_t$ \cite{VersteegMalalasekera2007CFD,Wilcox2006TurbulenceModeling}. With this assumption, the momentum equation can be written in a form similar to the laminar case, but using an effective viscosity that includes both molecular and turbulent contributions ($\mu+\mu_t$). The turbulence model therefore provides $\mu_t$ (or equivalently $\nu_t$) throughout the flow field.
+
+This is the approach used in OpenFOAM. The \texttt{simpleFoam} solver solves the steady-state, incompressible RANS equations using the SIMPLE pressure--velocity coupling algorithm \cite{VersteegMalalasekera2007CFD}. The mean velocity and pressure fields are computed, while the turbulent viscosity is obtained from the selected turbulence model. When the Spalart--Allmaras model is used, a single transport equation for a modified turbulent viscosity $\tilde{\nu}$ is solved and $\nu_t$ is computed from $\tilde{\nu}$ \cite{SpalartAllmaras1992SA,SpalartAllmaras1994SAJournal}. When the $k$--$\omega$ SST model is used, two transport equations are solved for the turbulent kinetic energy $k$ and the specific dissipation rate $\omega$, and $\nu_t$ is computed from $k$ and $\omega$ \cite{Menter1994SST}. In both cases, the underlying mean-flow equations solved by \texttt{simpleFoam} remain the same; only the method of evaluating the turbulent viscosity changes.
+\section{Turbulence Modeling}
+\label{sec:turbulence_modeling}
+
+As described in Section~\ref{sec:rans_theory}, the RANS equations introduce the Reynolds stress tensor, which adds unknown quantities that must be modelled. The most widely used approach in engineering CFD is based on the Boussinesq eddy-viscosity hypothesis, which assumes that the turbulent stresses can be represented using a single scalar quantity, the turbulent viscosity $\mu_t$ \cite{Pope2000TurbulentFlows,VersteegMalalasekera2007CFD,Wilcox2006TurbulenceModeling}. The role of a turbulence model is therefore to calculate $\mu_t$ at every point in the flow field. Different models achieve this by solving different sets of transport equations for turbulence-related variables.
+
+Turbulence models are commonly classified by the number of additional transport equations they solve. Zero-equation (algebraic) models compute $\mu_t$ directly from the mean flow without solving additional equations. One-equation models solve a single transport equation for a turbulence variable. Two-equation models solve two transport equations, which allows the turbulence velocity scale and turbulence length scale to be determined independently \cite{VersteegMalalasekera2007CFD,Wilcox2006TurbulenceModeling}. In general, models with more equations can represent a wider range of flow situations, but they also introduce more empirical constants and require additional computational effort.
+
+For this thesis, two turbulence models were selected: the one-equation Spalart--Allmaras (SA) model and the two-equation $k$--$\omega$ Shear Stress Transport (SST) model. Both models are widely used in aerospace CFD and were also used in the reference ANSYS Fluent simulations by Giannelis et al.~\cite{Giannelis2023SSAMGen5}. Using the same models in OpenFOAM supports a direct comparison of turbulence-closure behaviour between the solvers.
+
+\subsection{$k$--$\omega$ SST Model}
+\label{sec:sst_model}
+
+The $k$--$\omega$ SST model was developed by Menter \cite{Menter1994SST} to address limitations of two earlier two-equation models: the standard $k$--$\omega$ model and the standard $k$--$\varepsilon$ model. The $k$--$\omega$ model performs well in the near-wall region and within boundary layers, but it is sensitive to the freestream value of $\omega$, meaning that results may depend on the inlet boundary condition for $\omega$ \cite{Wilcox2006TurbulenceModeling,Menter1994SST}. In contrast, the $k$--$\varepsilon$ model is less sensitive to freestream conditions, but it typically performs worse near walls and may give poor predictions for flows with adverse pressure gradients and separation \cite{VersteegMalalasekera2007CFD,Wilcox2006TurbulenceModeling}.
+
+The SST model combines the advantages of both approaches using a blending function. Near walls the model behaves like a $k$--$\omega$ formulation, and it gradually transitions to a $k$--$\varepsilon$-type behaviour (rewritten in terms of $\omega$) in the outer boundary layer and in the freestream \cite{Menter1994SST}. In addition to the blending, the SST formulation introduces a modified turbulent-viscosity definition that accounts for transport of turbulent shear stress. This improves predictions for flows with adverse pressure gradients and separation, which are important in aerodynamic applications \cite{Menter1994SST}.
+
+The SST model solves two transport equations: one for turbulent kinetic energy $k$, which represents the energy content of turbulent fluctuations, and one for the specific dissipation rate $\omega$, which controls the rate at which turbulent energy is dissipated \cite{VersteegMalalasekera2007CFD,Menter1994SST}. The turbulent viscosity is then computed in the form
+\begin{equation}
+\mu_t = \rho \, \frac{k}{\omega},
+\end{equation}
+with an additional SST limiter applied through the shear-stress transport modification to prevent unrealistically large $\mu_t$ in regions of high production (for example near stagnation points or in strong vortex cores) \cite{Menter1994SST}.
+
+In OpenFOAM, the $k$--$\omega$ SST model is available as a standard selection in \texttt{turbulenceProperties}. When selected, \texttt{simpleFoam} solves the additional transport equations for $k$ and $\omega$ alongside the RANS momentum and continuity equations. The case setup therefore requires the initial and boundary condition fields \texttt{k} and \texttt{omega} in the \texttt{0} directory. Near-wall treatment for $\omega$ is typically applied using \texttt{omegaWallFunction}, while $k$ commonly uses \texttt{kqRWallFunction} on solid surfaces \cite{VersteegMalalasekera2007CFD}.
+
+\subsection{Spalart--Allmaras Model}
+\label{sec:sa_model}
+
+The Spalart--Allmaras (SA) model was developed specifically for aerodynamic applications \cite{SpalartAllmaras1992SA,SpalartAllmaras1994SAJournal}. Unlike two-equation models, it solves one transport equation for a modified turbulent-viscosity variable, usually denoted as $\tilde{\nu}$ (called \texttt{nuTilda} in OpenFOAM). The turbulent viscosity $\mu_t$ is then computed from $\tilde{\nu}$ using a damping function to ensure correct near-wall behaviour \cite{SpalartAllmaras1992SA,SpalartAllmaras1994SAJournal}.
+
+The main motivation behind the SA model was to provide a simple and computationally efficient turbulence model suitable for external aerodynamic flows over wings and fuselages at different angles of attack \cite{SpalartAllmaras1992SA}. Since only one additional equation is solved, the model typically requires less computational effort per iteration than two-equation models and is often numerically stable, which helps convergence in complex geometries \cite{Wilcox2006TurbulenceModeling}.
+
+The transport equation for $\tilde{\nu}$ includes production, diffusion, and destruction terms \cite{SpalartAllmaras1992SA,SpalartAllmaras1994SAJournal}. The production term depends on the local flow rotation (vorticity/strain), meaning that turbulent viscosity is generated in regions such as boundary layers and vortices. The destruction term ensures that $\tilde{\nu}$ is reduced in regions away from walls where turbulence production is weak. The balance between these terms determines the distribution of turbulent viscosity in the flow field \cite{Wilcox2006TurbulenceModeling}.
+
+A known characteristic of the SA model is that it can overpredict turbulent viscosity inside strong vortex cores, which may increase numerical diffusion and weaken vortical structures \cite{Giannelis2023SSAMGen5}. Nevertheless, the reference study by Giannelis et al.~\cite{Giannelis2023SSAMGen5} reported that the SA model provided strong overall correlation with wind tunnel measurements for the SSAM-Gen5 geometry, particularly at higher angles of attack.
+
+In OpenFOAM, the SA model is selected in \texttt{turbulenceProperties}. When active, \texttt{simpleFoam} solves the single transport equation for $\tilde{\nu}$ alongside the mean-flow equations. The case setup requires the turbulence field \texttt{nuTilda} in the \texttt{0} directory. At solid walls, \texttt{nuTilda} is typically set to zero, while the turbulent viscosity field \texttt{nut} uses a wall function boundary condition such as \texttt{nutUSpaldingWallFunction} to model near-wall behaviour \cite{VersteegMalalasekera2007CFD}.
+
+Both the SA and SST models provide the turbulent viscosity that is added to the molecular viscosity in the RANS momentum equation. From the perspective of the \texttt{simpleFoam} solver, the mean-flow equations remain the same regardless of turbulence model choice; the difference is the method used to compute $\mu_t$ and the number of additional transport equations solved.
+
+
+\section{Finite Volume Method and Discretization}
+
+\label{sec:fvm_discretization}
+
+The finite volume method (FVM) is the numerical approach used by OpenFOAM to solve the RANS equations. In this method, the computational domain is divided into a large number of small control volumes (cells), and the governing equations are integrated over each cell \cite{Patankar1980NumericalHeatTransfer,VersteegMalalasekera2007CFD}. This integration ensures that mass, momentum, and other conserved quantities are preserved at the discrete level, which is one of the main advantages of the finite volume approach \cite{VersteegMalalasekera2007CFD,FerzigerPericStreet2019CMFD}.
+
+For each cell, the volume integrals of the governing equations are converted into surface integrals over the cell faces using the Gauss divergence theorem \cite{VersteegMalalasekera2007CFD}. The values of velocity, pressure, and turbulence variables at the cell faces must then be estimated from the values stored at the cell centres. This estimation is called discretization, and the chosen discretization schemes affect both the accuracy and numerical stability of the solution \cite{Patankar1980NumericalHeatTransfer,VersteegMalalasekera2007CFD}.
+
+In the present simulations, second-order accurate schemes were used for the discretization of convective terms. Second-order schemes provide a practical balance between accuracy and stability for external aerodynamic flows \cite{VersteegMalalasekera2007CFD,FerzigerPericStreet2019CMFD}. For diffusive terms, second-order central differencing was applied, which is a standard choice in OpenFOAM. The gradients required for both convective and diffusive terms were computed using the Gauss linear method.
+
+The coupling between pressure and velocity in incompressible flow was handled using the SIMPLE (Semi-Implicit Method for Pressure-Linked Equations) algorithm \cite{Patankar1980NumericalHeatTransfer,VersteegMalalasekera2007CFD}. In SIMPLE, the momentum equations are first solved using an estimated pressure field to obtain an intermediate velocity field. A pressure-correction equation is then solved to update the pressure and correct the velocity so that continuity is satisfied. This procedure is repeated iteratively until changes between successive iterations become sufficiently small and the solution is considered converged \cite{Patankar1980NumericalHeatTransfer,VersteegMalalasekera2007CFD}. In OpenFOAM, the SIMPLE algorithm is implemented in the \texttt{simpleFoam} solver, which was used for all steady-state simulations in this work. The specific numerical schemes and solver settings used in this thesis are provided in Appendix~[X].
+\section{OpenFOAM Framework and Solvers}
+\label{sec:openfoam_framework}
+
+\subsection*{Overview}
+OpenFOAM (Open Field Operation And Manipulation) is a free and open-source \texttt{C++} toolbox for computational fluid dynamics (CFD) and, more generally, computational continuum mechanics \cite{Weller1998FOAM,Jasak2009OpenFOAM}. The core design ideas of the FOAM framework were published by Weller et al. in 1998 \cite{Weller1998FOAM}. OpenFOAM was released as free open-source software under the GNU General Public License (GPL) in December 2004 \cite{OpenFOAMOpenSource}. Because it is distributed under the GPL, the software can be used, modified, and redistributed without license fees, and the full source code is available for inspection and development \cite{OpenFOAMLicensing,OpenFOAMOpenSource}.
+
+\subsection*{Software architecture}
+OpenFOAM is not a single graphical program. It is a collection of libraries and applications (utilities and solvers) that are typically executed from the command line \cite{Weller1998FOAM,Jasak2009OpenFOAM}. The framework is built using object-oriented programming, where mathematical objects such as vectors, tensors, and fields are represented as \texttt{C++} classes. This design allows solver code to closely follow the mathematical form of the equations being solved \cite{Weller1998FOAM,Jasak2009OpenFOAM}.
+
+A typical OpenFOAM case is organised into three main directories \cite{OpenFOAMUserGuide}:
+\begin{itemize}
+    \item \texttt{0/} --- initial and boundary condition files for each field (e.g., velocity, pressure, turbulence variables),
+    \item \texttt{constant/} --- mesh in \texttt{polyMesh/} and physical property files (e.g., viscosity and turbulence model selection),
+    \item \texttt{system/} --- numerical schemes, solver settings, and run control parameters.
+\end{itemize}
+The case setup is performed using plain-text dictionary files. For post-processing and visualisation, OpenFOAM results can be opened directly in ParaView \cite{Ahrens2005ParaView,OpenFOAMUserGuide}.
+
+\subsection*{Meshing utilities}
+OpenFOAM includes built-in utilities for mesh generation. A common workflow is to create a simple background mesh using \texttt{blockMesh} and then refine and fit the mesh to an STL surface geometry using \texttt{snappyHexMesh} \cite{OpenFOAMUserGuide,OpenFOAMsnappyHexMeshGuide}. The \texttt{snappyHexMesh} process typically includes three stages: castellation (cell splitting/refinement), surface snapping, and boundary-layer addition \cite{OpenFOAMsnappyHexMeshGuide,OpenFOAMsnappyHexMeshV13}. The mesh generation procedure used in this thesis follows this standard approach (see Section~3.3).
+
+
+\subsection*{Solver selection}
+OpenFOAM provides many solvers, each designed for a specific class of problems (e.g., incompressible, compressible, multiphase, heat transfer) \cite{OpenFOAMUserGuide}. For incompressible flows, commonly used solvers include:
+\begin{itemize}
+    \item \texttt{simpleFoam} --- steady-state incompressible solver using the SIMPLE algorithm \cite{OpenFOAMsimpleFoamGuide},
+    \item \texttt{pisoFoam} --- transient incompressible solver using the PISO algorithm \cite{OpenFOAMUserGuide},
+    \item \texttt{pimpleFoam} --- transient incompressible solver using the PIMPLE algorithm (combination of PISO and SIMPLE) \cite{OpenFOAMUserGuide}.
+\end{itemize}
+For compressible flows, OpenFOAM provides solvers such as \texttt{rhoSimpleFoam} (steady-state) and \texttt{rhoPimpleFoam} (transient), which additionally solve an energy equation and account for density variations \cite{OpenFOAMUserGuide}.
+
+\subsection*{Why \texttt{simpleFoam} was chosen}
+In this thesis, \texttt{simpleFoam} was selected for all simulations for three reasons.
+
+First, the simulated flow conditions correspond to low-speed incompressible flow. The freestream velocity is $20~\mathrm{m/s}$, which corresponds to a Mach number of approximately $M \approx 0.06$. At such low Mach numbers, density variations are negligible and an incompressible solver is appropriate \cite{VersteegMalalasekera2007CFD}.
+
+Second, the study focuses on time-averaged aerodynamic coefficients (lift, drag, and pitching moment), rather than on the time evolution of the flow. A steady-state solver is therefore sufficient and computationally more efficient than a transient solver for this purpose. The \texttt{simpleFoam} solver iterates to a converged solution using SIMPLE \cite{OpenFOAMsimpleFoamGuide}.
+
+Third, the reference ANSYS Fluent simulations by Giannelis et al.~\cite{Giannelis2023SSAMGen5} used a steady-state, pressure-based solver with SIMPLE-type coupling. Using \texttt{simpleFoam} therefore supports a direct comparison between the two CFD frameworks.
+
+It is noted that steady-state RANS simulations have limitations at high angles of attack where the flow can become strongly separated and unsteady. In such cases the solution may not converge to a perfectly steady state and force coefficients can oscillate between iterations. For these cases, time-averaged coefficient values were reported by averaging over a stable interval of the final iterations, consistent with the approach described in the reference study \cite{Giannelis2023SSAMGen5}.
+
+\subsection*{Comparison with ANSYS Fluent}
+ANSYS Fluent is a commercial CFD package that provides a complete graphical workflow for geometry import, meshing, solver setup, and post-processing, supported by extensive documentation and commercial support \cite{AnsysFluentTheoryGuide}. OpenFOAM and ANSYS Fluent share the same core numerical approach: both solve the governing equations using the finite volume method and both provide SIMPLE-type pressure--velocity coupling for steady incompressible simulations \cite{VersteegMalalasekera2007CFD,OpenFOAMsimpleFoamGuide,AnsysFluentTheoryGuide}. Both codes also provide the turbulence models used in this thesis (Spalart--Allmaras and $k$--$\omega$ SST). Practical differences are mainly related to the user interface (text-based in OpenFOAM versus GUI-based in Fluent), meshing tools, and implementation details of the numerical methods. The validation results in Chapter~4 show that despite these differences, comparable aerodynamic predictions can be achieved for the same geometry and flow conditions.
