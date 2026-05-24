@@ -1,2 +1,4 @@
+CAFA_SA/constant/triSurface/motorBike.stl filter=lfs diff=lfs merge=lfs -text
+CAFA_SST/constant/triSurface/motorBike.stl filter=lfs diff=lfs merge=lfs -text
 *.stl filter=lfs diff=lfs merge=lfs -text
 *.zip filter=lfs diff=lfs merge=lfs -text
