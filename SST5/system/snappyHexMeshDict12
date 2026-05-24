@@ -84,7 +84,7 @@ castellatedMeshControls
     // Number of buffer layers between different levels.
     // 1 means normal 2:1 refinement restriction, larger means slower
     // refinement.
-    nCellsBetweenLevels 2;
+    nCellsBetweenLevels 3;
 
 
 
@@ -97,7 +97,7 @@ castellatedMeshControls
     (
         {
             file "motorBike.eMesh";
-            level 11; // initial mesh coarse then adjust as needed // should make edges sharper
+            level 6; // initial mesh coarse then adjust as needed // should make edges sharper
         }
     );
 
@@ -117,7 +117,7 @@ castellatedMeshControls
         motorBike
         {
             // Surface-wise min and max refinement level
-            level (9 9); // initially coarse
+            level (6 6); // initially coarse
 
             // Optional specification of patch type (default is wall). No
             // constraint types (cyclic, symmetry) etc. are allowed.
@@ -130,7 +130,7 @@ castellatedMeshControls
     }
 
     // Resolve sharp angles
-    resolveFeatureAngle 10; // lesser the value, the more refinement done
+    resolveFeatureAngle 20; // lesser the value, the more refinement done
 
 
     // Region-wise refinement
@@ -151,13 +151,13 @@ castellatedMeshControls
         refinementBox2
         {
             mode inside;
-            levels ((1E15 4)); //prev 2
+            levels ((1E15 2)); //prev 2
         }
         
         refinementBox
         {
             mode inside;
-            levels ((1E15 6)); //prev 4
+            levels ((1E15 4)); //prev 4
         }
         
     }

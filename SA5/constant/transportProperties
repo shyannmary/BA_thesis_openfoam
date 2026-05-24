@@ -16,8 +16,7 @@ FoamFile
 
 transportModel  Newtonian;
 
-nu              1.5e-05; // vb peaks muutma - uurida dynamic viscoscity of air
-
+nu              1.5e-05;
 
 
 

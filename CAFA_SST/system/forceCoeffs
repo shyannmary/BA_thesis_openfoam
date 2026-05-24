@@ -1,0 +1,37 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2412                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+#include "../constant/flowProperties"
+
+forceCoeffs1
+{
+    type            forceCoeffs;
+
+    libs            (forces);
+
+    writeControl    timeStep;
+    timeInterval    1;
+
+    log             yes;
+
+    patches         (motorBikeGroup);
+    rho             rhoInf;      // Indicates incompressible
+    rhoInf          1.225;           // Required when rho = rhoInf
+    liftDir         ${liftDir};
+
+    dragDir         ${dragDir};
+    CofR            (0.308 0 0); 
+    pitchAxis       (0 1 0);
+    magUInf         ${Umag};
+    lRef            0.224;    
+    Aref            0.06055;         
+}
+
+
+
+
+// ************************************************************************* //

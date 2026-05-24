@@ -1,0 +1,53 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Version:  v2412
+    \\  /    A nd           | Website:  www.openfoam.com
+     \\/     M anipulation  |
+-------------------------------------------------------------------------------
+Description
+    Calculates the turbulence y+, outputting the data as a yPlus field.
+
+\*---------------------------------------------------------------------------*/
+
+yPlus
+{
+    type            yPlus;                       // for RANS turbulence
+    libs            ("libfieldFunctionObjects.so"); // correct library
+    executeControl  timeStep;                       // run every time step
+    executeInterval 50;                              // every timestep
+    writeControl    timeStep;                       // write every timestep
+    writeInterval   50;                              // write every timestep
+    log             true;                           
+
+    patches
+    (
+        motorBikeGroup
+    );
+}
+
+
+// ************************************************************************* //
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Version:  v2412
+    \\  /    A nd           | Website:  www.openfoam.com
+     \\/     M anipulation  |
+-------------------------------------------------------------------------------
+Description
+    Calculates the turbulence y+, outputting the data as a yPlus field.
+
+\*---------------------------------------------------------------------------*/
+
+type            yPlus;
+libs            (fieldFunctionObjects);
+
+writeFields     yes;
+executeControl  timeStep;
+executeInterval 50;
+writeControl    timeStep;
+writeinterval 50;
+log true;
+
+// ************************************************************************* //

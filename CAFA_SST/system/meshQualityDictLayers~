@@ -1,0 +1,45 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2412                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      meshQualityDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+
+
+
+    //- Maximum non-orthogonality allowed. Set to 180 to disable.
+    maxNonOrtho 68;
+
+    maxBoundarySkewness 25;
+    maxInternalSkewness 8;
+    maxConcave      75;
+    minVol          1e-45;
+    minTetQuality   1e-20;
+    minArea         -1; // -1;
+    minTwist        -1; // 0.05;
+    minDeterminant  2e-4;
+    minFaceWeight   1e-2; // 0.05;
+    minVolRatio     3e-3;
+    minTriangleTwist -1;
+
+
+    nSmoothScale   4;
+
+    errorReduction 0.75;
+
+relaxed
+{
+    maxNonOrtho 75;
+}
+// ************************************************************************* //
